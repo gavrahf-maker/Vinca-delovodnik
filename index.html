@@ -647,7 +647,8 @@ function subscribe(db){
   db.doc('meta/settings').onSnapshot(s=>{S.settings=s.exists?s.data():null;S.loaded.settings=true;addMeToList();scheduleRender()},e=>{S.loaded.settings=true;scheduleRender()});
   void timer;
 }
-let rq=0;function scheduleRender(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;render()})}
+/* Приказ после стизања података: requestAnimationFrame, уз резерву setTimeout — неки прегледачи (позадински/уграђени прозори) не покрећу rAF, па би остао екран „Учитавање…“ */
+let rq=0;function scheduleRender(){if(rq)return;let done=false;const go=()=>{if(done)return;done=true;rq=0;render()};rq=requestAnimationFrame(go)||1;setTimeout(go,120)}
 
 async function save(coll,id,data,akcija){
   if(!S.db){toast('База није доступна — измене се не чувају.');throw new Error('nodb')}
