@@ -110,7 +110,7 @@ h2{font-size:15px;font-weight:600;margin:0}
 .kpi .s{font-size:12px;color:var(--faint)}
 .kpi .dotk{width:8px;height:8px;border-radius:50%}
 /* ток */
-.flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0;padding:6px 18px 18px}
+.flow{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:0;padding:6px 18px 18px}
 .stage{position:relative;padding:12px 10px 12px 14px;border:0;background:none;text-align:left;cursor:pointer;border-radius:10px;display:flex;flex-direction:column;gap:6px;min-width:0}
 .stage:hover{background:var(--surface2)}
 .stage .n{font-family:var(--mono);font-size:26px;font-weight:500;line-height:1}
@@ -188,6 +188,15 @@ table.t{width:100%;border-collapse:collapse;font-size:13.5px}
 .t td.r,.t th.r{text-align:right}
 .t td.wrapc{max-width:340px}
 .t td.ph{white-space:nowrap}
+.t.dl{font-size:12.5px}
+.t.dl th{white-space:normal;line-height:1.25;min-width:64px;vertical-align:bottom}
+.t.dl td{padding:8px 10px;vertical-align:top}
+.t.dl td.nw{white-space:nowrap}
+.t.dl td.w1{min-width:110px;max-width:150px}
+.t.dl td.w2{min-width:140px;max-width:220px}
+.t.dl td.sm{font-size:12px}
+.wrap.wide{max-width:none}
+.gap{font-size:11.5px;color:var(--danger);margin-top:4px;white-space:normal;line-height:1.3}
 .t .muted{color:var(--muted)}
 .t .who{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12.5px;white-space:nowrap}
 .t .who .av-s{width:22px;height:22px;font-size:10px}
@@ -314,7 +323,7 @@ table.t{width:100%;border-collapse:collapse;font-size:13.5px}
 /* ток предмета */
 .flow .stage .n{color:var(--kpi-num)}
 .flow .stage .bar i{background:var(--bar)}
-.flow .stage:nth-child(6) .bar i{background:var(--ok)}
+.flow .stage:nth-child(8) .bar i{background:var(--ok)}
 /* табеле */
 .t th{background:var(--th-bg);color:var(--th-ink)}
 .t tbody tr:nth-child(even) td{background:var(--stripe)}
@@ -463,7 +472,7 @@ table.t{width:100%;border-collapse:collapse;font-size:13.5px}
 .dtp .g button.s{background:var(--indigo);color:#fff}
 .dtp .ft{display:flex;justify-content:space-between;margin-top:8px}
 
-@media (max-width:1100px){.cols{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.flow{grid-template-columns:repeat(3,minmax(0,1fr))}.stage:nth-child(3)::after{display:none}}
+@media (max-width:1100px){.cols{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.flow{grid-template-columns:repeat(4,minmax(0,1fr))}.stage:nth-child(4)::after{display:none}}
 @media (max-width:640px){.app{grid-template-columns:64px 1fr}.nav a{font-size:9px;padding:8px 0}.nav .brand span{display:none}
   .fg,.fg.g3{grid-template-columns:1fr}.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.stage::after{display:none}
   .login{grid-template-columns:1fr}.login .art{display:none}h1{font-size:23px}.kpi .v{font-size:24px}.cal .c{min-height:70px;padding:4px}.cal .ev{font-size:10px;padding:2px 4px}}
@@ -535,11 +544,11 @@ const COLL=['entries','offers','zahtevi','projects','field','ugovori','docs','se
 const S={me:null,db:null,dl:null,canWrite:true,loaded:{},stale:false,
   entries:[],offers:[],zahtevi:[],projects:[],field:[],ugovori:[],docs:[],services:[],clients:[],izvozi:[],settings:null,
   page:'tabla',f:{q:'',faza:'',vrsta:'',isp:'',otvoreni:false},cal:null,cq:'',pq:'',zq:'',uq:'',tab:{ponude:'lista',zahtevi:'lista'},ed:null};
-const DEF={pragovi:{pripremaPonude:3,cekaOdgovor:0,vaziPonuda:30,cekaNalog:5,realizacija:30,fakturisanje:3,projekatObrazac:14,alarmDana:60},
+const DEF={pragovi:{pripremaPonude:3,cekaOdgovor:0,vaziPonuda:30,cekaNalog:5,cekaIspitivac:3,realizacija:30,fakturisanje:3,izdatZahtev:15,projekatObrazac:14,alarmDana:60},
  ponuda:{prefiks:'4-',nacinPlacanja:'Вирман',rokPlacanja:'8 дана',rokVazenja:'30 дана',pdv:20,potpisnik:'',funkcija:'Руководилац ОЈ',oj:'Лабораторија "Заштита"',oznaka:'',banka:'',mb:'',pib:'',napomena:'',vanObima:'*Ван обима акредитације',footer1:'',footer2:''},
  zahtev:{oznaka:'ЗП.3.100.27.2',verzija:'2.0',lab1:'Лабораторија за заштиту од зрачења и',lab2:'заштиту животне средине "ЗАШТИТА"',tehRukovodilac:'',rokPlacanja:'8 дана'},
  lists:{vrsteUsluga:[],primaoci:[],preispitivanje:[],opisZahteva:['Захтев','Понуда','Јавна набавка'],ispitivaci:[],projektiDokumenti:[],statusProjekta:['У изради','Завршено'],statusZahteva:['Прихваћено','Одбијено'],standardi:[],dokKategorije:[],
-  zahtevFakt:['Издат','Интерна фактура'],vrsteRacuna:['Фактура','Предрачун','Већ плаћено'],rokoviPlacanja:['7 дана','8 дана','30 дана','45 дана','60 дана','90 дана'],zaposleni:[]}};
+  zahtevFakt:['Издат','Интерна фактура'],bezNaloga:['Пројекти','Мишљење','Мишљење за возила','Допис','Прорачун заштитних баријера','Сертификати'],vrsteRacuna:['Фактура','Предрачун','Већ плаћено'],rokoviPlacanja:['7 дана','8 дана','30 дана','45 дана','60 дана','90 дана'],zaposleni:[]}};
 const cfg=()=>{const s=S.settings||{};return{pragovi:{...DEF.pragovi,...(s.pragovi||{})},ponuda:{...DEF.ponuda,...(s.ponuda||{})},zahtev:{...DEF.zahtev,...(s.zahtev||{})},lists:{...DEF.lists,...(s.lists||{})}}};
 
 /* ================= фазе предмета ================= */
@@ -547,22 +556,42 @@ const PHASES=[
  {k:'priprema',t:'Припрема понуде',c:'gold',prag:'pripremaPonude'},
  {k:'odgovor',t:'Чека одговор купца',c:'cyan',prag:'cekaOdgovor'},
  {k:'nalog',t:'Чека радни налог',c:'indigo',prag:'cekaNalog'},
+ {k:'ispitivac',t:'Чека испитивача',c:'indigo',prag:'cekaIspitivac'},
  {k:'realizacija',t:'У реализацији',c:'indigo',prag:'realizacija'},
  {k:'faktura',t:'За фактурисање',c:'gold',prag:'fakturisanje'},
+ {k:'zahtev',t:'Издат захтев за фактурисање',c:'cyan',prag:'izdatZahtev'},
  {k:'zatvoreno',t:'Фактурисано',c:'ok'},
  {k:'odbijeno',t:'Одбијено',c:'danger'},
  {k:'istekla',t:'Понуда истекла',c:'plain'}];
 const PH=Object.fromEntries(PHASES.map(p=>[p.k,p]));
 function phaseOf(e){
   if((e.status||'')==='Одбијено')return 'odbijeno';
+  // Фаза = следећи корак после последње попуњене колоне: … → Бр. уговора (може да остане празно) → Бр. радног налога → Испитивач → Бр. документа → Захтев за фактурисање (извоз PDF) → Бр. фактуре
+  if(isInterni(e))return e.brFakture?'zatvoreno':'faktura';
   if(e.brFakture)return 'zatvoreno';
-  if(e.brDokumenta||e.zahtevFakt)return 'faktura';
-  if(e.brNaloga)return 'realizacija';
-  if(e.status==='Прихваћено')return 'nalog';
+  if(e.zahtevFakt)return 'zahtev';
+  if(e.brDokumenta)return 'faktura';
+  if(e.ispitivac)return 'realizacija';
+  if(e.brNaloga)return 'ispitivac';
+  if(e.status==='Прихваћено'||e.brUgovora)return isProjekat(e)?'ispitivac':'nalog';
+  if(e.opis==='Јавна набавка'&&!e.status)return 'odgovor'; // јавна набавка чека одлуку (Статус) без рока важења
   if(e.brPonude)return daysSince(offerDate(e))>vaziDana()?'istekla':'odgovor';
-  if(['Понуда','Јавна набавка'].includes(e.opis))return 'priprema';
+  if(e.opis==='Понуда')return 'priprema'; // број понуде се тражи само за „Понуда“
+  if(isProjekat(e))return 'ispitivac';
   return 'nalog';
 }
+/* Прескочени кораци: колона лево од последње попуњене остала празна (Бр. уговора сме да буде празан) */
+const STEP_COLS=[['brNaloga','Бр. радног налога'],['ispitivac','Испитивач'],['brDokumenta','Бр. документа'],['zahtevFakt',null],['brFakture',null]];
+/* Интерне лабораторије Винче (корисник „Лаб ***“, нпр. Лаб 240, Лаб 070): важи само издавање интерне фактуре (без понуде, налога, испитивача…) */
+const isInterni=e=>/^(лаб|лабораторија|lab)\s*\d+$/.test(nkey(e.korisnik));
+/* Услуге које се раде само електронски (Пројекти, Мишљење, Допис, Сертификати…): нема радног налога ни терена; прати се ко израђује (Испитивач), Бр. документа (израђен) и фактурисање. Листа: Подешавања → Листе → „Услуге без радног налога“ */
+const isProjekat=e=>(cfg().lists.bezNaloga||[]).some(v=>nkey(v)===nkey(e.vrsta));
+function phaseGaps(e){if((e.status||'')==='Одбијено'||isInterni(e))return [];let last=-1;STEP_COLS.forEach(([k],i)=>{if(String(e[k]||'').trim())last=i});
+  const g=last<1?[]:STEP_COLS.slice(0,last).filter(([k,l])=>l&&!String(e[k]||'').trim()&&!(k==='brNaloga'&&isProjekat(e))).map(x=>x[1]);
+  // Број понуде се тражи само кад је опис захтева „Понуда“
+  if(e.opis==='Понуда'&&!String(e.brPonude||'').trim()&&(e.status==='Прихваћено'||last>=0||String(e.brUgovora||'').trim()))g.unshift('Бр. понуде');
+  return g}
+const gapsHtml=e=>{const g=phaseGaps(e);return g.length?`<div class="gap">недостаје: ${esc(g.join(', '))}</div>`:''};
 const isOpen=e=>!['zatvoreno','odbijeno','istekla'].includes(phaseOf(e));
 /* Понуда важи N дана (подразумевано 30). Датум понуде: из понуде у апликацији, иначе први датум у пољу „Бр. понуде“ (нпр. „послата мејлом 12.01.2026.“), иначе датум предмета. */
 const vaziDana=()=>+cfg().pragovi.vaziPonuda||30;
@@ -574,8 +603,8 @@ function alarms(){
   const P=cfg().pragovi, out=[];
   const win=+P.alarmDana||0;
   for(const e of S.entries){const k=phaseOf(e),p=PH[k];if(!p.prag)continue;
-    if(k==='odgovor'){const age=daysSince(offerDate(e)),lim=+P.cekaOdgovor||0,left=vaziDana()-age;if(age<lim)continue;
-      out.push({sev:left<=5?'crit':'warn',age,ageLbl:left<=0?'истиче данас':`важи још ${left} д`,title:`Р.б. ${e.rb} · ${e.korisnik||'—'}`,desc:`Чека одговор купца · понуда од ${fmtD(offerDate(e))}`,open:()=>openEntry(e.id),key:'e'+e.id});continue}
+    if(k==='odgovor'){const age=daysSince(offerDate(e)),lim=+P.cekaOdgovor||0,left=vaziDana()-age,jn=e.opis==='Јавна набавка';if(age<lim||(jn&&win&&daysSince(e.datum)>win))continue;
+      out.push({sev:jn?'warn':left<=5?'crit':'warn',age,ageLbl:jn?`${age} д`:left<=0?'истиче данас':`важи још ${left} д`,title:`Р.б. ${e.rb} · ${e.korisnik||'—'}`,desc:`Чека одговор купца · понуда од ${fmtD(offerDate(e))}`,open:()=>openEntry(e.id),key:'e'+e.id});continue}
     if(win&&daysSince(e.datum)>win)continue;
     const age=daysSince(e.fazaOd||e.datum),lim=+P[p.prag]||0;if(age<=lim)continue;
     out.push({sev:age>2*lim?'crit':'warn',age,title:`Р.б. ${e.rb} · ${e.korisnik||'—'}`,desc:`${p.t} — дуже од ${lim} ${lim===1?'дана':'дана'}`,open:()=>openEntry(e.id),key:'e'+e.id});}
@@ -711,7 +740,7 @@ function render(force){
   else if(!S.canWrite)banner=`<div class="banner">${icon('alert')}<span>Можете да прегледате податке, али немате дозволу за унос. Власник треба да вам додели приступ „Editor“.</span></div>`;
   else if(S.stale)banner=`<div class="banner">${icon('clock')}<span>Подаци се још учитавају или нису доступни — приказ можда није ажуран.</span></div>`;
   const body=!ready&&!S.stale?`<div class="empty"><b>Учитавање…</b>Повезивање са базом података.</div>`:(VIEWS[S.page]||VIEWS.tabla)();
-  $('#main').innerHTML=`<div class="wrap">${clockB}${banner}${body}</div>`;
+  $('#main').innerHTML=`<div class="wrap${S.page==='delovodnik'?' wide':''}">${clockB}${banner}${body}</div>`;
   (BIND[S.page]||(()=>{}))();
 }
 const head=(eb,title,sub,actions='')=>`<div class="head"><div><div class="eyebrow">${dots()} ${eb}</div><h1>${title}</h1>${sub?`<div class="sub">${sub}</div>`:''}</div><div class="actions">${actions}</div></div>`;
@@ -726,7 +755,7 @@ VIEWS.tabla=()=>{
   const offVal=pend.reduce((s,e)=>{const o=S.offers.find(o=>o.broj===e.brPonude);return s+(o?offerTotals(o).ukupno:0)},0);
   const decided=E.filter(e=>e.status==='Прихваћено'||e.status==='Одбијено'),acc=E.filter(e=>e.status==='Прихваћено').length;
   const projOpen=S.projects.filter(p=>p.status!=='Завршено').length;
-  const stages=['priprema','odgovor','nalog','realizacija','faktura','zatvoreno'];
+  const stages=['priprema','odgovor','nalog','ispitivac','realizacija','faktura','zahtev','zatvoreno'];
   const cnt=Object.fromEntries(stages.map(k=>[k,E.filter(e=>phaseOf(e)===k).length]));const mx=Math.max(1,...Object.values(cnt));
   const alStage=k=>al.filter(a=>a.key[0]==='e'&&phaseOf(S.entries.find(e=>'e'+e.id===a.key)||{})===k).length;
   const h=+bgParts().hour,greet=h>=5&&h<12?'Добро јутро':h>=12&&h<18?'Добар дан':'Добро вече';
@@ -804,8 +833,8 @@ VIEWS.delovodnik=()=>{
     <select class="in" id="fi">${opt([...new Set([...L.ispitivaci,...S.entries.map(e=>e.ispitivac).filter(Boolean)])],S.f.isp,'Сви испитивачи')}</select>
     <label class="toggle"><input type="checkbox" id="fo" ${S.f.otvoreni?'checked':''}>Само отворени</label>
   </div>
-  <div class="tw"><table class="t"><thead><tr><th class="r">Р.б.</th><th>Датум</th><th>Корисник</th><th>Опис</th><th>Врста услуге</th><th>Фаза</th><th>Бр. понуде</th><th>Р. налог</th><th>Испитивач</th><th>Бр. фактуре</th><th>Последња измена</th></tr></thead><tbody>
-  ${(()=>{const AM=new Map(alarms().map(a=>[a.key,a]));return rows.map(e=>{const k=phaseOf(e),late=AM.get('e'+e.id);return `<tr data-id="${e.id}"><td class="r num">${esc(e.rb)}</td><td class="num muted">${fmtD(e.datum)}</td><td><b>${esc(e.korisnik)}</b></td><td>${esc(e.opis)}</td><td class="wrapc">${esc(e.vrsta)}</td><td class="ph">${phaseChip(k)}${late?` <span class="chip ${late.sev==='crit'?'danger':'gold'} plain" title="${esc(late.desc)}">${late.age} д</span>`:''}</td><td class="wrapc" style="max-width:200px;font-size:12.5px">${esc(e.brPonude)}</td><td class="num">${esc(e.brNaloga)}</td><td>${esc(e.ispitivac)}</td><td class="muted" style="font-size:12.5px;max-width:160px">${esc(e.brFakture)}</td><td>${who(e.updatedBy)}</td></tr>`}).join('')})()}
+  <div class="tw"><table class="t dl"><thead><tr><th class="r">Р.б.</th><th>Датум</th><th>Корисник</th><th>Опис захтева</th><th>Врста услуге</th><th>Преиспитивање<br>захтева ЗП.3.100.61.2</th><th>Бр. понуде/<br>јавне набавке</th><th>Статус</th><th>Бр. уговора/<br>наруџбенице</th><th>Бр. радног<br>налога</th><th>Испитивач</th><th>Бр. документа</th><th>Бр. фактуре</th><th>Фаза</th></tr></thead><tbody>
+  ${(()=>{const AM=new Map(alarms().map(a=>[a.key,a]));return rows.map(e=>{const late=AM.get('e'+e.id);return `<tr data-id="${e.id}"><td class="r num">${esc(e.rb)}</td><td class="num muted nw">${fmtD(e.datum)}</td><td class="w2"><b>${esc(e.korisnik)}</b></td><td>${esc(e.opis)}</td><td class="w2">${esc(e.vrsta)}</td><td class="w1">${esc(e.preispitivanje)}</td><td class="w2 sm">${esc(e.brPonude)}</td><td class="w1">${esc(e.status)}</td><td class="w2 sm">${esc(e.brUgovora)}</td><td class="num">${esc(e.brNaloga)}</td><td class="w1">${esc(e.ispitivac)}</td><td class="w2 sm">${esc(e.brDokumenta)}</td><td class="w1 sm">${esc(e.brFakture)}</td><td class="ph">${phaseChip(phaseOf(e))}${late?` <span class="chip ${late.sev==='crit'?'danger':'gold'} plain" title="${esc(late.desc)}">${late.age} д</span>`:''}${gapsHtml(e)}</td></tr>`}).join('')})()}
   </tbody></table>${rows.length?'':`<div class="empty"><b>Нема предмета</b>${S.entries.length?'Ниједан предмет не одговара филтерима.':'Додајте први предмет дугметом „Нов предмет“.'}</div>`}</div>
   <div class="tfoot"><span>Приказано ${rows.length} од ${S.entries.length}</span><span>Кликните ред за измену</span></div></section>`;
 };
@@ -876,7 +905,7 @@ const metN=(e,m)=>{const a=e.metode||[];const x=a.find(x=>(x?.m??x)===m);return 
 /* ---------- предмет ---------- */
 function openEntry(id){
   const e=id?S.entries.find(x=>x.id===id):{rb:nextRb(),datum:todayISO(),primio:'',standardi:{}};if(!e)return;
-  const L=cfg().lists,k=id?phaseOf(e):null,order=['priprema','odgovor','nalog','realizacija','faktura','zatvoreno'];
+  const L=cfg().lists,k=id?phaseOf(e):null,order=['priprema','odgovor','nalog','ispitivac','realizacija','faktura','zahtev','zatvoreno'];
   const off=id?offerForEntry(e):null,zah=id?S.zahtevi.filter(z=>z.entryId===id):[];
   openDrawer(dHead(id?'Предмет':'Нов предмет',id?`Р.б. ${esc(e.rb)} · ${esc(e.korisnik)}`:'Унос у деловодник')+`<form class="db" id="ef">${dlists()}
     ${id?`<div class="phase-now">${phaseChip(k)}<div class="steps">${order.map((s,i)=>`<i class="${order.indexOf(k)>=i&&k!=='odbijeno'?'on':''}"></i>`).join('')}</div><span class="sub" style="margin:0;font-size:12px">у фази ${daysSince(e.fazaOd||e.datum)} д</span></div>`:''}
@@ -1108,7 +1137,6 @@ function bindZahtevForm(root){
     if(!d.stavke.length){toast('Додајте бар једну услугу.');return null}
     if(S.zahtevi.some(x=>x.broj===d.broj&&x.id!==S.ed.id)){toast(`Захтев ${d.broj} већ постоји.`);return null}
     try{const nid=await save('zahtevi',S.ed.id,d);S.ed.id=nid;
-      const e=S.entries.find(x=>x.id===d.entryId);if(e&&!e.zahtevFakt){const ne={...e,zahtevFakt:'Издат'};ne.fazaOd=phaseOf(ne)!==phaseOf(e)?todayISO():(e.fazaOd||e.datum);await save('entries',e.id,ne,'Захтев за фактурисање '+d.broj)}
       return {...d,id:nid}}catch(e){return null}};
 }
 
@@ -1179,7 +1207,8 @@ async function exportPdf(kind,o,btn){
     const blob=await makePdfBlob(kind,o,P);
     const ok=await saveFile(blob,pdfName(kind,o));
     if(ok){toast('PDF је сачуван.');
-      try{await save('izvozi',null,{tip:kind,docId:o.id||'',offerId:kind==='offer'?(o.id||''):'',broj:o.broj,kupac:o.kupac?.naziv||'',ukupno:kind==='zahtev'?zahTotal(o):offerTotals(o).ukupno,ko:S.me,kada:nowISO(),[kind==='zahtev'?'zahtev':'ponuda']:snap,obrazac:P},'Извоз PDF')}catch(e){}}
+      try{await save('izvozi',null,{tip:kind,docId:o.id||'',offerId:kind==='offer'?(o.id||''):'',broj:o.broj,kupac:o.kupac?.naziv||'',ukupno:kind==='zahtev'?zahTotal(o):offerTotals(o).ukupno,ko:S.me,kada:nowISO(),[kind==='zahtev'?'zahtev':'ponuda']:snap,obrazac:P},'Извоз PDF')}catch(e){}
+      if(kind==='zahtev'&&o.entryId){const e=S.entries.find(x=>x.id===o.entryId);if(e&&!e.zahtevFakt){const ne={...e,zahtevFakt:'Издат'};ne.fazaOd=phaseOf(ne)!==phaseOf(e)?todayISO():(e.fazaOd||e.datum);try{await save('entries',e.id,ne,'Захтев за фактурисање '+o.broj+' извезен')}catch(x){}}}}
   }catch(e){if(e?.code!=='declined')toast(e?.code==='rate_limited'?'Сачекајте тренутак па покушајте поново.':'Извоз PDF-а није успео.')}
   finally{if(btn){btn.disabled=false;btn.innerHTML=lbl}}
 }
@@ -1342,8 +1371,8 @@ function openClient(id){
 }
 
 /* ---------- ПОДЕШАВАЊА ---------- */
-const LIST_LBL={opisZahteva:'Опис захтева',vrsteUsluga:'Врсте услуга',preispitivanje:'Преиспитивање захтева',primaoci:'Примаоци захтева',ispitivaci:'Испитивачи',statusZahteva:'Статус захтева',zahtevFakt:'Захтев за фактурисање (у предмету)',vrsteRacuna:'Врсте рачуна',rokoviPlacanja:'Рокови плаћања',projektiDokumenti:'Документи пројеката',statusProjekta:'Статус пројекта',standardi:'Методе (стандарди)',dokKategorije:'Категорије документације',zaposleni:'Колеге (пријава)'};
-const PRAG_LBL={pripremaPonude:'Припрема понуде',cekaOdgovor:'Чека одговор купца: аларм од дана (0 = одмах по изради понуде)',vaziPonuda:'Понуда важи (дана); после тога се одговор не чека',cekaNalog:'Чека радни налог',realizacija:'У реализацији',fakturisanje:'За фактурисање',projekatObrazac:'Пројекат: образац није враћен',alarmDana:'Аларми само за предмете млађе од (дана, 0 = сви)'};
+const LIST_LBL={opisZahteva:'Опис захтева',vrsteUsluga:'Врсте услуга',preispitivanje:'Преиспитивање захтева',primaoci:'Примаоци захтева',ispitivaci:'Испитивачи',statusZahteva:'Статус захтева',zahtevFakt:'Захтев за фактурисање (у предмету)',bezNaloga:'Услуге без радног налога (раде се електронски)',vrsteRacuna:'Врсте рачуна',rokoviPlacanja:'Рокови плаћања',projektiDokumenti:'Документи пројеката',statusProjekta:'Статус пројекта',standardi:'Методе (стандарди)',dokKategorije:'Категорије документације',zaposleni:'Колеге (пријава)'};
+const PRAG_LBL={pripremaPonude:'Припрема понуде',cekaOdgovor:'Чека одговор купца: аларм од дана (0 = одмах по изради понуде)',vaziPonuda:'Понуда важи (дана); после тога се одговор не чека',cekaNalog:'Чека радни налог',cekaIspitivac:'Чека испитивача',realizacija:'У реализацији',fakturisanje:'За фактурисање',izdatZahtev:'Издат захтев, чека број фактуре',projekatObrazac:'Пројекат: образац није враћен',alarmDana:'Аларми само за предмете млађе од (дана, 0 = сви)'};
 const POND_LBL={nacinPlacanja:'Начин плаћања',rokPlacanja:'Рок плаћања',rokVazenja:'Рок важења',pdv:'Стопа ПДВ-а (%)',funkcija:'Функција потписника',oj:'Организациона јединица',potpisnik:'Потписник',banka:'Текући рачун и банка',mb:'Матични број',pib:'ПИБ',oznaka:'Ознака обрасца',vanObima:'Напомена за услуге са звездицом (*)',footer1:'Подножје, ред 1',footer2:'Подножје, ред 2'};
 const ZAH_LBL={oznaka:'Ознака обрасца',verzija:'Верзија',lab1:'Назив лабораторије, ред 1',lab2:'Назив лабораторије, ред 2',tehRukovodilac:'Технички руководилац (подразумевано)',rokPlacanja:'Рок плаћања (подразумевано)'};
 VIEWS.podesavanja=()=>{const C=cfg();

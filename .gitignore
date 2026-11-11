@@ -1,0 +1,8 @@
+# Radni materijal (Excel, obrasci, podaci) — ne ide na GitHub
+_materijal/
+
+# Početni podaci sa PIB-ovima korisnika — nikad na GitHub
+pocetni-podaci.json
+
+# Slike pregleda koje Claude aplikacija kopira u folder — ne idu na GitHub
+Claude outputs/
