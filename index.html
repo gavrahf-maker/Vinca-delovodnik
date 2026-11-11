@@ -591,21 +591,31 @@ async function initFirebase(){
   const v='10.12.2',b=`https://www.gstatic.com/firebasejs/${v}/`;
   await loadScript(b+'firebase-app-compat.js');await loadScript(b+'firebase-auth-compat.js');await loadScript(b+'firebase-firestore-compat.js');
   firebase.initializeApp(window.FIREBASE_CONFIG);const fs=firebase.firestore();try{fs.settings({ignoreUndefinedProperties:true})}catch(e){}
-  await firebase.auth().signInAnonymously();
+  /* Заједничка шифра: један налог за све колеге (е-пошта је фиксна, шифру уноси корисник; шифра није у коду). Пријава се памти на рачунару. */
+  const user=await new Promise(r=>{const un=firebase.auth().onAuthStateChanged(u=>{un();r(u)})});
+  if(!user||user.isAnonymous){if(user)try{await firebase.auth().signOut()}catch(e){}S.needPass=true}
   return fs;
 }
+const SHARED_EMAIL='kolege@vinca-delovodnik.firebaseapp.com';
+async function signInShared(pass){await firebase.auth().signInWithEmailAndPassword(SHARED_EMAIL,pass);S.needPass=false;subscribe(S.db)}
+async function signOutShared(){try{await firebase.auth().signOut()}catch(e){}location.reload()}
+function addMeToList(){const z=cfg().lists.zaposleni||[],n=S.me;if(!n||!S.db||!S.canWrite||!S.loaded.settings||!S.settings||z.includes(n)||S._addingMe)return;S._addingMe=true;saveSettings({lists:{...cfg().lists,zaposleni:[...z,n]}}).catch(()=>{}).finally(()=>{S._addingMe=false})}
 async function initDb(){
   let db=null;
   if(window.FIREBASE_CONFIG&&window.FIREBASE_CONFIG.apiKey){S.mode='firebase';try{db=await initFirebase()}catch(e){console.error(e);S.fbErr=String(e?.message||e)}}
   else{try{db=await window.claude?.use?.('db')}catch(e){}try{S.dl=await window.claude?.use?.('downloads')}catch(e){}}
   if(!db){S.noDb=true;COLL.forEach(c=>S.loaded[c]=true);S.loaded.settings=true;render();return}
   S.db=db;
+  if(S.needPass){render();return}
+  subscribe(db);
+}
+function subscribe(db){
   const timer=setTimeout(()=>{if(Object.keys(S.loaded).length<COLL.length+1){S.stale=true;render()}},10000);
   for(const c of COLL){
     db.collection(c).onSnapshot(snap=>{S[c]=snap.docs.map(d=>({id:d.id,...d.data()}));S.loaded[c]=true;if(!snap.metadata.fromCache)S.stale=false;scheduleRender()},
       err=>{S.loaded[c]=true;S.err=err.code;scheduleRender()});
   }
-  db.doc('meta/settings').onSnapshot(s=>{S.settings=s.exists?s.data():null;S.loaded.settings=true;scheduleRender()},e=>{S.loaded.settings=true;scheduleRender()});
+  db.doc('meta/settings').onSnapshot(s=>{S.settings=s.exists?s.data():null;S.loaded.settings=true;addMeToList();scheduleRender()},e=>{S.loaded.settings=true;scheduleRender()});
   void timer;
 }
 let rq=0;function scheduleRender(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;render()})}
@@ -637,7 +647,7 @@ function getMe(){try{return localStorage.getItem('dz_me')||''}catch(e){return ''
 function setMe(n){S.me=n;try{localStorage.setItem('dz_me',n)}catch(e){}}
 let loginAnim=0;
 function showLogin(){
-  const L=$('#login');const known=(cfg().lists.zaposleni||[]);
+  const L=$('#login');const known=S.needPass?[]:(cfg().lists.zaposleni||[]),pw=!!S.needPass;
   L.innerHTML=`<div class="art"><canvas id="lc"></canvas></div>
   <form class="pane" id="lf" autocomplete="off">
     <img src="logo.png" alt="">
@@ -646,14 +656,18 @@ function showLogin(){
     <p>Унесите своје име. Оно се бележи уз сваки унос и измену, да би колеге знале ко је радио на предмету.</p>
     ${known.length?`<div class="known">${known.map(n=>`<button type="button" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div>`:''}
     <input class="in" id="ln" placeholder="Име и презиме" value="${esc(getMe())}" required>
-    <button class="btn pri" type="submit">Уђи у деловодник</button>
-    <small>Нема лозинке — приступ има свако ко има линк.</small>
+    ${pw?`<input class="in" id="lp" type="password" placeholder="Шифра" autocomplete="current-password" required>`:''}
+    <button class="btn pri" type="submit" id="lb">Уђи у деловодник</button>
+    <small>${pw?'Шифру добијате од колега из лабораторије. Уноси се једном на овом рачунару.':S.mode==='firebase'?`Овај рачунар је пријављен. <a href="#" id="lout" style="color:#9FDCEA">Одјави рачунар</a> (следећи улаз тражи шифру).`:'Нема лозинке — приступ има свако ко има линк.'}</small>
   </form>`;
   L.hidden=false;
   $$('.known button',L).forEach(b=>b.onclick=()=>{$('#ln').value=b.dataset.n;$('#lf').requestSubmit()});
-  $('#lf').onsubmit=async ev=>{ev.preventDefault();const n=$('#ln').value.trim().replace(/\s+/g,' ');if(!n)return;setMe(n);L.hidden=true;cancelAnimationFrame(loginAnim);
-    const z=cfg().lists.zaposleni||[];if(S.db&&S.canWrite&&!z.includes(n)){try{await saveSettings({lists:{...cfg().lists,zaposleni:[...z,n]}})}catch(e){}}
-    render()};
+  if($('#lout'))$('#lout').onclick=ev=>{ev.preventDefault();signOutShared()};
+  $('#lf').onsubmit=async ev=>{ev.preventDefault();const n=$('#ln').value.trim().replace(/\s+/g,' ');if(!n)return;
+    if(S.needPass){const p=$('#lp').value,b=$('#lb');if(!p)return;b.disabled=true;b.textContent='Провера шифре…';
+      try{await signInShared(p)}catch(e){b.disabled=false;b.textContent='Уђи у деловодник';const c=e?.code||'';
+        toast(c.includes('too-many')?'Превише погрешних покушаја. Сачекајте неколико минута.':c.includes('network')?'Нема интернет везе.':'Погрешна шифра.');$('#lp').select();return}}
+    setMe(n);L.hidden=true;cancelAnimationFrame(loginAnim);addMeToList();render()};
   setTimeout(()=>$('#ln')?.focus(),50);drawLattice($('#lc'));
 }
 function drawLattice(cv){
@@ -1375,8 +1389,8 @@ route();
 syncClock();
 fetch('pocetni-podaci.json',{cache:'no-store'}).then(r=>r.ok&&(r.headers.get('content-type')||'').includes('json')?r.json():null).then(d=>{if(d?.verzija){S.seedAvail=d.verzija;scheduleRender()}}).catch(()=>{});
 setInterval(()=>{const c=$('#clk');if(c)c.textContent=bgTime();if(S.lastDay!==todayISO()){S.lastDay=todayISO();if(S.tab[S.page]!=='obrazac'&&!$('#drawer').classList.contains('on'))render()}},30000);S.lastDay=todayISO();
-initDb().then(()=>{if(!S.me)showLogin()});
-if(!S.me)setTimeout(()=>{if(!S.me&&$('#login').hidden)showLogin()},400);
+initDb().then(()=>{if(!S.me||S.needPass)showLogin()});
+if(!S.me&&!window.FIREBASE_CONFIG?.apiKey)setTimeout(()=>{if(!S.me&&$('#login').hidden)showLogin()},400);
 </script>
 
 </body>
