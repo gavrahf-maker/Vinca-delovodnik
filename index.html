@@ -861,7 +861,14 @@ addEventListener('resize',closeDtp);document.addEventListener('scroll',e=>{if(dt
 const histHtml=x=>x?.istorija?.length?`<div class="sec"><h4>Историја измена</h4><div class="hist">${[...x.istorija].reverse().slice(0,8).map(h=>`<div><span class="av-s" style="width:22px;height:22px;font-size:10px">${esc(initials(h.ko))}</span><b>${esc(h.ko)}</b> ${esc(h.akcija.toLowerCase())} · ${fmtDT(h.kada)}</div>`).join('')}</div></div>`:'';
 const dlists=()=>`<datalist id="dl_cl">${[...new Set(S.clients.flatMap(c=>[...(c.alias||[]),c.naziv]))].map(n=>`<option value="${esc(n)}">`).join('')}</datalist><datalist id="dl_sv">${[...S.services].sort((a,b)=>(+a.rb||999)-(+b.rb||999)).map(s=>`<option value="${esc(s.naziv)}">`).join('')}</datalist>`;
 const nkey=s=>String(s||'').toLowerCase().replace(/["'„“”«»]/g,'').replace(/\s+/g,' ').trim();
-const findClient=n=>{n=nkey(n);return n?S.clients.find(c=>nkey(c.naziv)===n||nkey(c.punNaziv)===n||(c.alias||[]).some(a=>nkey(a)===n)):null};
+// Индекс корисника по нормализованом називу; гради се поново само кад стигне нова листа корисника
+let _cIdx={src:null,map:null};
+function clientIndex(){if(_cIdx.src!==S.clients){const m=new Map(),put=(k,c)=>{k=nkey(k);if(k&&!m.has(k))m.set(k,c)};S.clients.forEach(c=>put(c.naziv,c));S.clients.forEach(c=>put(c.punNaziv,c));S.clients.forEach(c=>(c.alias||[]).forEach(a=>put(a,c)));_cIdx={src:S.clients,map:m}}return _cIdx.map}
+const findClient=n=>{n=nkey(n);return n?(clientIndex().get(n)||null):null};
+// Број предмета по кориснику, рачуна се једном по промени података
+let _cCnt={e:null,c:null,map:null};
+function clientCounts(){if(_cCnt.e!==S.entries||_cCnt.c!==S.clients){const m=new Map();S.entries.forEach(e=>{const c=findClient(e.korisnik);if(c)m.set(c,(m.get(c)||0)+1)});_cCnt={e:S.entries,c:S.clients,map:m}}return _cCnt.map}
+const SR_COLL=new Intl.Collator('sr');
 const clientOf=e=>findClient(e?.korisnik);
 /* методе: [{m,n}] (број апарата по методи); старији облик ['QC',…] се чита као 1 */
 const metN=(e,m)=>{const a=e.metode||[];const x=a.find(x=>(x?.m??x)===m);return x?(x.n??1):0};
@@ -1314,11 +1321,11 @@ BIND.usluge=()=>{
 
 /* ---------- КОРИСНИЦИ ---------- */
 VIEWS.korisnici=()=>{
-  const q=S.cq.toLowerCase(),rows=S.clients.filter(c=>!q||[c.naziv,c.punNaziv,...(c.alias||[]),c.mesto,c.pib,c.adresa].join(' ').toLowerCase().includes(q)).sort((a,b)=>a.naziv.replace(/["'„“]/g,'').localeCompare(b.naziv.replace(/["'„“]/g,''),'sr'));
+  const q=S.cq.toLowerCase(),rows=S.clients.filter(c=>!q||[c.naziv,c.punNaziv,...(c.alias||[]),c.mesto,c.pib,c.adresa].join(' ').toLowerCase().includes(q)).map(c=>[c,c.naziv.replace(/["'„“]/g,'')]).sort((a,b)=>SR_COLL.compare(a[1],b[1])).map(x=>x[0]),cnt=clientCounts();
   return head('Купци и наручиоци','Корисници','Подаци се аутоматски уписују у понуду и у захтев за фактурисање када изаберете корисника.',`<button class="btn pri" id="nc">${icon('plus')}Нов корисник</button>`)+
   `<section class="card"><div class="toolbar"><div class="search">${icon('search')}<input class="in" id="cq" placeholder="Претрага: назив, пун назив, место, ПИБ" value="${esc(S.cq)}"></div></div>
   <div class="tw"><table class="t"><thead><tr><th>Корисник</th><th>Адреса</th><th>Место</th><th>ПИБ</th><th>Контакт</th><th class="r">Предмета</th></tr></thead><tbody>
-  ${rows.map(c=>`<tr data-id="${c.id}"><td><b>${esc(c.naziv)}</b>${c.punNaziv?`<div class="muted" style="font-size:12px">${esc(c.punNaziv)}</div>`:''}${(c.alias||[]).length?`<div style="font-size:12px;color:var(--cyan)">у деловоднику: ${esc(c.alias.join(', '))}</div>`:''}</td><td>${esc(c.adresa)}</td><td>${esc(c.mesto)}</td><td class="num">${esc(c.pib)}</td><td class="muted">${esc(c.kontakt)}</td><td class="r num">${S.entries.filter(e=>clientOf(e)===c).length||''}</td></tr>`).join('')}
+  ${rows.map(c=>`<tr data-id="${c.id}"><td><b>${esc(c.naziv)}</b>${c.punNaziv?`<div class="muted" style="font-size:12px">${esc(c.punNaziv)}</div>`:''}${(c.alias||[]).length?`<div style="font-size:12px;color:var(--cyan)">у деловоднику: ${esc(c.alias.join(', '))}</div>`:''}</td><td>${esc(c.adresa)}</td><td>${esc(c.mesto)}</td><td class="num">${esc(c.pib)}</td><td class="muted">${esc(c.kontakt)}</td><td class="r num">${cnt.get(c)||''}</td></tr>`).join('')}
   </tbody></table>${rows.length?'':`<div class="empty"><b>Нема корисника</b>${S.clients.length?'Претрага не даје резултат.':'Додајте првог корисника.'}</div>`}</div><div class="tfoot"><span>${rows.length} од ${S.clients.length}</span></div></section>`;
 };
 BIND.korisnici=()=>{let tm;$('#cq').oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>{S.cq=$('#cq').value;const p=$('#cq').selectionStart;render();$('#cq').focus();$('#cq').setSelectionRange(p,p)},180)};
