@@ -742,7 +742,7 @@ function render(force){
   else if(S.stale)banner=`<div class="banner">${icon('clock')}<span>Подаци се још учитавају или нису доступни — приказ можда није ажуран.</span></div>`;
   const body=!ready&&!S.stale?`<div class="empty"><b>Учитавање…</b>Повезивање са базом података.</div>`:(VIEWS[S.page]||VIEWS.tabla)();
   $('#main').innerHTML=`<div class="wrap${S.page==='delovodnik'?' wide':''}">${clockB}${banner}${body}</div>`;
-  (BIND[S.page]||(()=>{}))();
+  if(ready||S.stale)(BIND[S.page]||(()=>{}))(); // док стоји „Учитавање…“ нема елемената стране — везивање би пукло и зауставило покретање (освежавање на #ponude, #delovodnik…)
 }
 const head=(eb,title,sub,actions='')=>`<div class="head"><div><div class="eyebrow">${dots()} ${eb}</div><h1>${title}</h1>${sub?`<div class="sub">${sub}</div>`:''}</div><div class="actions">${actions}</div></div>`;
 const who=(n)=>n?`<span class="who"><span class="av-s">${esc(initials(n))}</span>${esc(n)}</span>`:'';
