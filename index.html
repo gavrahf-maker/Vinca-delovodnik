@@ -757,7 +757,7 @@ function showLogin(){
     if(S.needPass){const p=$('#lp').value,b=$('#lb');if(!p)return;b.disabled=true;b.textContent='Провера шифре…';
       try{await signInShared(p)}catch(e){b.disabled=false;b.textContent='Уђи у деловодник';const c=e?.code||'';
         toast(c.includes('too-many')?'Превише погрешних покушаја. Сачекајте неколико минута.':c.includes('network')?'Нема интернет везе.':'Погрешна шифра.');$('#lp').select();return}}
-    setMe(n);L.hidden=true;cancelAnimationFrame(loginAnim);addMeToList();render()};
+    setMe(n);L.hidden=true;cancelAnimationFrame(loginAnim);addMeToList();if(location.hash!=='#tabla'){S.tab[S.page]='lista';S.ed=null;location.hash='tabla'}else render()};
   setTimeout(()=>$('#ln')?.focus(),50);drawLattice($('#lc'));
 }
 function drawLattice(cv){
@@ -1600,6 +1600,8 @@ let tt;function toast(msg){$('.toast')?.remove();const t=document.createElement(
 
 /* ---------- старт ---------- */
 S.me=getMe();
+/* Ново отварање апликације (не освежавање стране) увек почиње од Табле */
+try{const nv=performance.getEntriesByType('navigation')[0];if(!nv||nv.type!=='reload')history.replaceState(null,'',location.pathname+location.search+'#tabla')}catch(e){}
 route();
 syncClock();
 fetch('pocetni-podaci.json',{cache:'no-store'}).then(r=>r.ok&&(r.headers.get('content-type')||'').includes('json')?r.json():null).then(d=>{if(d?.verzija){S.seedAvail=d.verzija;scheduleRender()}}).catch(()=>{});
