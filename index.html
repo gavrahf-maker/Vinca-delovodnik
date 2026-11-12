@@ -671,6 +671,7 @@ function alarms(){
   for(const p of S.projects){if(p.status==='Завршено')continue;
     if(p.datumSlanja&&!p.datumPrijema){const age=daysSince(p.datumSlanja),lim=+P.projekatObrazac;if(age>lim)out.push({sev:age>2*lim?'crit':'warn',age,title:`Пројекат ${p.delBroj||''} · ${p.korisnik||'—'}`,desc:'Образац послат, а није враћен',open:()=>openProject(p.id),key:'p'+p.id});}}
   for(const d of S.docs){if(!d.vaziDo)continue;const left=-daysSince(d.vaziDo);if(left<=45)out.push({sev:left<0?'crit':left<=15?'warn':'info',age:left<0?-left:left,ageLbl:left<0?`истекло пре ${-left} д`:`за ${left} д`,title:d.naziv||'Документ',desc:left<0?'Важење је истекло':'Важење ускоро истиче',open:()=>openDoc(d.id),key:'d'+d.id});}
+  if(S.db&&S.loaded.settings&&S.entries.length){const r=S.settings?.rezerva?.kada,age=r?daysSince(r.slice(0,10)):null;if(age===null||age>=7)out.push({sev:age===null||age>=14?'warn':'info',age:age??0,ageLbl:age===null?'никад':`пре ${age} д`,title:'Резервна копија',desc:age===null?'Резервна копија базе још није прављена':'Време је за нову резервну копију базе',open:()=>{location.hash='podesavanja';setTimeout(()=>$('#rezerva')?.scrollIntoView({block:'start'}),300)},key:'rz'})}
   const w={crit:0,warn:1,info:2};return out.sort((a,b)=>w[a.sev]-w[b.sev]||b.age-a.age);
 }
 
@@ -1364,10 +1365,10 @@ async function makePdfBlob(kind,o,P){
   pdf.setProperties({title:KW[kind].tt+o.broj,author:S.me||'',creator:'Деловодник Заштита'});
   st.innerHTML='';return pdf.output('blob');
 }
-async function saveFile(blob,name){
+async function saveFile(blob,name,json){
   if(S.dl){await S.dl.save({filename:name,data:blob});return true}
   if(window.showSaveFilePicker){
-    try{const h=await showSaveFilePicker({suggestedName:name,types:[{description:'PDF документ',accept:{'application/pdf':['.pdf']}}]});const w=await h.createWritable();await w.write(blob);await w.close();return true}
+    try{const h=await showSaveFilePicker({suggestedName:name,types:[json?{description:'Резервна копија (JSON)',accept:{'application/json':['.json']}}:{description:'PDF документ',accept:{'application/pdf':['.pdf']}}]});const w=await h.createWritable();await w.write(blob);await w.close();return true}
     catch(e){if(e?.name==='AbortError')return false;}
   }
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000);return true;
@@ -1563,27 +1564,48 @@ VIEWS.podesavanja=()=>{const C=cfg();
 </div>
    <section class="card"><div class="ch"><h2>Понуда — образац</h2></div><div class="cb"><div class="fg">${Object.keys(POND_LBL).map(k=>field('po_'+k,POND_LBL[k],C.ponuda[k],k==='pdv'?'number':'text',k==='vanObima'?{span:true,hint:'Штампа се изнад текста испод ставки само кад понуда има услугу чији назив почиње звездицом.'}:{})).join('')}${field('po_napomena','Текст испод ставки',C.ponuda.napomena,'textarea',{span:true,rows:8})}</div></div></section>
   </div>
-  <section class="card"><div class="ch"><h2>Почетни подаци</h2></div><div class="cb" style="display:flex;flex-direction:column;gap:14px">
-    <p class="sub" style="margin:0">Увоз из фајла <b>pocetni-podaci.json</b> (направљен из Excel-а „Delovodnik 2026“): предмети, корисници, услуге са ценама, пројекти, евиденција захтева за фактурисање, уговори, распоред терена и шифарници.</p>
+  <section class="card" id="rezerva"><div class="ch"><h2>Резервна копија</h2></div><div class="cb" style="display:flex;flex-direction:column;gap:14px">
+    <p class="sub" style="margin:0">Преузима целу базу у један JSON фајл (${backupCounts()}), заједно са подешавањима и шифарницима. Копију чувајте ван овог рачунара (мрежни диск, USB). Препорука: једном недељно и пре већих измена.</p>
+    ${(()=>{const r=S.settings?.rezerva;if(!r?.kada)return `<div class="banner">${icon('alert')}<span>Резервна копија још није прављена.</span></div>`;const age=daysSince(r.kada.slice(0,10));return `<div class="banner" style="${age<7?'background:var(--ok-soft)':''}">${icon(age<7?'check':'clock')}<span>Последња резервна копија: <b>${fmtDT(r.kada)}</b>${r.ko?` · ${esc(r.ko)}`:''}${age?` · пре ${age} д`:' · данас'}</span></div>`})()}
+    <div><button class="btn pri" id="bkDl" type="button">${icon('pdf')}Преузми резервну копију</button></div></div></section>
+  <section class="card"><div class="ch"><h2>Враћање података</h2></div><div class="cb" style="display:flex;flex-direction:column;gap:14px">
+    <p class="sub" style="margin:0">Враћање из резервне копије (JSON преузет дугметом изнад) или из почетних података <b>pocetni-podaci.json</b>. Користи се само ако су подаци у бази оштећени или изгубљени.</p>
     ${S.settings?.uvoz?`<div class="banner" style="background:var(--ok-soft)">${icon('check')}<span>Подаци су увезени: <b>${esc(S.settings.uvoz)}</b>${S.settings.uvezeno?` · ${fmtDT(S.settings.uvezeno)}`:''}${S.settings.uvezao?` · ${esc(S.settings.uvezao)}`:''}. Ништа више не треба радити — ово дугме служи само ако се увоз мора поновити, а брише све што је у међувремену унето.</span></div>`:''}<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="seedR" type="button">${icon('file')}Замени све податке подацима из фајла…</button>${S.seedAvail&&S.settings?.uvoz!==S.seedAvail?`<button class="btn pri" id="seedB" type="button">${icon('file')}Учитај „Деловодник 2026“ (замени све)</button>`:''}<input type="file" id="seedF" accept=".json,application/json" hidden></div>
-    <p class="sub" style="margin:0;font-size:12.5px">„Замени све“ прво брише све постојеће предмете, понуде, захтеве, пројекте, терен, уговоре, документацију, услуге, кориснике и евиденцију извоза, па уноси податке из фајла. Списак колега за пријаву остаје.</p></div></section>
+    <p class="sub" style="margin:0;font-size:12.5px">„Замени све“ прво брише све постојеће предмете, понуде, радне налоге, захтеве, пројекте, терен, уговоре, документацију, услуге, кориснике и евиденцију извоза, па уноси податке из фајла. Списак колега за пријаву остаје.</p></div></section>
   <section class="card"><div class="ch"><h2>Листе</h2><span class="sub" style="margin:0;font-size:12.5px">Једна ставка по реду</span></div><div class="cb"><div class="fg g3">${Object.keys(LIST_LBL).map(k=>field('li_'+k,LIST_LBL[k],(C.lists[k]||[]).join('\n'),'textarea',{rows:6})).join('')}</div></div></section>`};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function retry(fn){for(let i=0;;i++){try{return await fn()}catch(e){if(i>=5||!(e?.code==='rate_limited'||e?.code==='unavailable'||e?.code==='resource-exhausted'))throw e;await sleep(800*2**i)}}}
 async function importSeed(data,replace){
   if(!S.db){toast('База није доступна.');return}
-  const KEYS=['entries','services','clients','projects','zahtevi','ugovori','field'];
+  const KEYS=['entries','services','clients','projects','zahtevi','ugovori','field','offers','nalozi','docs','izvozi'];
   if(replace){const del=[];['entries','offers','zahtevi','nalozi','projects','field','ugovori','docs','services','clients','izvozi'].forEach(c=>S[c].forEach(d=>del.push([c,d.id])));
     for(let i=0;i<del.length;i+=20){await Promise.all(del.slice(i,i+20).map(([c,id])=>retry(()=>S.db.collection(c).doc(id).delete())));toast(`Брисање старих података: ${Math.min(del.length,i+20)} / ${del.length}`)}}
   const jobs=[];KEYS.forEach(k=>(data[k]||[]).forEach(d=>{const {id,...rest}=d;jobs.push([k,id,rest])}));
   for(let i=0;i<jobs.length;i+=20){await Promise.all(jobs.slice(i,i+20).map(([c,id,d])=>retry(()=>S.db.collection(c).doc(id).set(d))));toast(`Увоз у току: ${Math.min(jobs.length,i+20)} / ${jobs.length}`)}
-  if(data.settings){const cur=S.settings||{};await retry(()=>S.db.doc('meta/settings').set({...data.settings,pragovi:{...data.settings.pragovi,...(cur.pragovi||{})},uvoz:data.verzija||'',uvezeno:nowISO(),uvezao:S.me||'',lists:{...data.settings.lists,zaposleni:[...new Set([...(cur.lists?.zaposleni||[]),...(data.settings.lists?.zaposleni||[])])]}}))}
+  if(data.settings&&data.tip==='rezerva'){const cur=S.settings||{};await retry(()=>S.db.doc('meta/settings').set({...data.settings,rezerva:cur.rezerva||data.settings.rezerva||null,vraceno:{iz:data.verzija||'',kada:nowISO(),ko:S.me||''}}))}
+  else if(data.settings){const cur=S.settings||{};await retry(()=>S.db.doc('meta/settings').set({...data.settings,pragovi:{...data.settings.pragovi,...(cur.pragovi||{})},uvoz:data.verzija||'',uvezeno:nowISO(),uvezao:S.me||'',lists:{...data.settings.lists,zaposleni:[...new Set([...(cur.lists?.zaposleni||[]),...(data.settings.lists?.zaposleni||[])])]}}))}
   toast(`Готово: увезено ${jobs.length} записа.`);
 }
-const seedSummary=d=>`${(d.entries||[]).length} предмета, ${(d.clients||[]).length} корисника, ${(d.services||[]).length} услуга, ${(d.projects||[]).length} пројеката, ${(d.zahtevi||[]).length} захтева за фактурисање, ${(d.ugovori||[]).length} уговора, ${(d.field||[]).length} излазака на терен.`;
+/* Резервна копија: све колекције + подешавања у један JSON (исти облик као почетни подаци, па се враћа кроз „Замени све податке подацима из фајла…“) */
+const BK_LBL=[['entries','предмети'],['offers','понуде'],['nalozi','радни налози'],['zahtevi','захтеви за фактурисање'],['clients','корисници'],['services','услуге'],['projects','пројекти'],['field','изласци на терен'],['ugovori','уговори'],['docs','документи'],['izvozi','извози PDF']];
+const backupCounts=(d=S)=>BK_LBL.filter(([k])=>(d[k]||[]).length).map(([k,l])=>`${l} ${(d[k]||[]).length}`).join(', ');
+async function downloadBackup(btn){
+  if(!S.db||S.noDb){toast('База није доступна.');return}
+  if(!(COLL.every(c=>S.loaded[c])&&S.loaded.settings)||S.stale){toast('Подаци се још учитавају — покушајте за тренутак.');return}
+  const kada=nowISO(),p=bgParts(new Date(kada)),d={tip:'rezerva',verzija:`Резервна копија ${fmtDT(kada)}`,napravljeno:kada,napravio:S.me||'',settings:JSON.parse(JSON.stringify(S.settings||{}))};
+  COLL.forEach(c=>d[c]=JSON.parse(JSON.stringify(S[c])));
+  const name=`Delovodnik_rezerva_${p.year}-${p.month}-${p.day}_${p.hour}${p.minute}.json`;
+  const l=btn?.innerHTML;if(btn){btn.disabled=true;btn.innerHTML='Припрема…'}
+  try{const ok=await saveFile(new Blob([JSON.stringify(d)],{type:'application/json'}),name,true);
+    if(ok){toast('Резервна копија је сачувана: '+name);try{await saveSettings({rezerva:{kada,ko:S.me||'',fajl:name}})}catch(e){}}}
+  catch(e){if(e?.code!=='declined')toast('Преузимање није успело.')}
+  finally{if(btn){btn.disabled=false;btn.innerHTML=l}}
+}
+const seedSummary=d=>(d.tip==='rezerva'?`${d.verzija||'Резервна копија'}: `:'')+backupCounts(d)+'.';
 function askSeed(d){if(!d||(!d.clients&&!d.entries)){toast('Фајл није у очекиваном облику.');return}
   confirmBox('Заменити све податке?',`Све постојеће ће бити обрисано и замењено: ${seedSummary(d)} Ово се не може опозвати.`,'Обриши и увези',()=>importSeed(d,true).catch(e=>{handleWriteErr(e)}))}
 BIND.podesavanja=()=>{
+  $('#bkDl').onclick=ev=>downloadBackup(ev.currentTarget);
   $('#seedR').onclick=()=>$('#seedF').click();
   $('#seedF').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;try{askSeed(JSON.parse(await f.text()))}catch(e){toast('Фајл није могуће прочитати.')}ev.target.value=''};
   if($('#seedB'))$('#seedB').onclick=async()=>{try{const r=await fetch('pocetni-podaci.json',{cache:'no-store'});if(!r.ok)throw 0;askSeed(await r.json())}catch(e){toast('Фајл са подацима није објављен уз апликацију — изаберите га дугметом „Замени све податке подацима из фајла“.')}};
