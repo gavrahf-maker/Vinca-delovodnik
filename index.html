@@ -341,7 +341,7 @@ table.t{width:100%;border-collapse:collapse;font-size:13.5px}
 .alarms .al .sev.crit{background:#C9472F;color:#fff}
 .alarms .al .sev.warn{background:#E9A23B;color:#fff}
 /* модал, тост, пријава */
-.modal{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;background:rgba(10,11,28,.5)}
+.modal{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:16px;background:rgba(10,11,28,.5)}
 .modal .box{background:var(--surface);border-radius:14px;max-width:420px;width:100%;padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:14px}
 .modal .box p{margin:0;color:var(--muted)}
 .modal .row{display:flex;justify-content:flex-end;gap:8px}
@@ -844,6 +844,15 @@ BIND.delovodnik=()=>{
   let tm;$('#fq').oninput=()=>{clearTimeout(tm);tm=setTimeout(upd,180)};['#ff','#fv','#fi','#fo'].forEach(s=>$(s).onchange=upd);
   $$('tr[data-id]').forEach(r=>r.onclick=()=>openEntry(r.dataset.id));bindGo();
 };
+/* Повезани записи предмета: понуде, захтеви за фактурисање, евиденција извоза PDF, пројекти, изласци на терен — бришу се заједно са предметом */
+function exportsOf(list){const ids=new Set(list.map(([,d])=>d.id).filter(Boolean)),keys=new Set(list.map(([k,d])=>k+'|'+d.broj));
+  return S.izvozi.filter(x=>ids.has(x.docId)||ids.has(x.offerId)||keys.has((x.tip==='zahtev'?'zahtev':'offer')+'|'+x.broj))}
+function linkedOf(e){const offs=S.offers.filter(o=>o.entryId===e.id||(!o.entryId&&e.brPonude&&o.broj===e.brPonude)),zs=S.zahtevi.filter(z=>z.entryId===e.id);
+  const iz=[...new Set([...exportsOf([...offs.map(o=>['offer',o]),...zs.map(z=>['zahtev',z])]),...S.izvozi.filter(x=>(x.ponuda?.entryId||x.zahtev?.entryId)===e.id)])];
+  return {offs,zs,iz,pj:S.projects.filter(p=>p.entryId===e.id),fl:S.field.filter(f=>String(f.rb??'').trim()===String(e.rb))}}
+const linkedTxt=L=>[[L.offs,'понуда','понуде','понуда'],[L.zs,'захтев за фактурисање','захтева за фактурисање','захтева за фактурисање'],[L.iz,'извоз PDF','извоза PDF','извоза PDF'],[L.pj,'пројекат','пројекта','пројеката'],[L.fl,'излазак на терен','изласка на терен','изласка на терен']]
+  .filter(x=>x[0].length).map(([a,one,few,many])=>{const n=a.length,t=n%10===1&&n%100!==11?one:[2,3,4].includes(n%10)&&![12,13,14].includes(n%100)?few:many;return `${n} ${t}`}).join(', ');
+async function removeAll(pairs){for(let i=0;i<pairs.length;i+=20)await Promise.all(pairs.slice(i,i+20).map(([c,id])=>remove(c,id)))}
 const nextRb=()=>Math.max(0,...S.entries.map(e=>+e.rb||0))+1;
 
 /* ---------- панел ---------- */
@@ -939,7 +948,8 @@ function openEntry(id){
     try{const nid=await save('entries',id,d);await syncProject(nid,d);drawerDirty=false;return nid}catch(err){return null}};
   $('#sv').onclick=async()=>{const r=await doSave();if(r){closeDrawer(true);toast(S._pm||'Предмет је сачуван.');S._pm=null}};
   $('#ef').onsubmit=ev=>ev.preventDefault();
-  if($('#del'))$('#del').onclick=()=>{const pj=S.projects.filter(p=>p.entryId===id);confirmBox(`Обрисати предмет Р.б. ${e.rb}?`,'Брисање се не може опозвати.'+(pj.length?' Обрисаће се и повезани пројекат.':''),'Обриши',async()=>{await remove('entries',id);for(const p of pj)await remove('projects',p.id);closeDrawer(true);toast('Предмет је обрисан.')})};
+  if($('#del'))$('#del').onclick=()=>{const L=linkedOf(e),t=linkedTxt(L);confirmBox(`Обрисати предмет Р.б. ${e.rb}?`,'Брисање се не може опозвати.'+(t?` Обрисаће се и све што је везано за предмет: ${t}.`:''),'Обриши',async()=>{
+    await removeAll([...L.iz.map(x=>['izvozi',x.id]),...L.offs.map(x=>['offers',x.id]),...L.zs.map(x=>['zahtevi',x.id]),...L.pj.map(x=>['projects',x.id]),...L.fl.map(x=>['field',x.id])]);await remove('entries',id);closeDrawer(true);toast(t?`Предмет је обрисан, заједно са: ${t}.`:'Предмет је обрисан.')})};
   if($('#mkOff'))$('#mkOff').onclick=async()=>{const nid=await doSave();if(!nid)return;closeDrawer(true);setTimeout(()=>openOffer(null,nid),260)};
   if($('#goOff'))$('#goOff').onclick=()=>{closeDrawer(true);setTimeout(()=>openOffer(off.id),260)};
   if($('#mkZah'))$('#mkZah').onclick=async()=>{const nid=await doSave();if(!nid)return;closeDrawer(true);setTimeout(()=>openZahtev(null,nid),260)};
@@ -987,7 +997,7 @@ function bindEditor(root,inDrawer){
   $('#edSave',root).onclick=async()=>{const r=await S.ed.save();if(r){toast(kind==='offer'?'Нацрт понуде је сачуван.':'Захтев је сачуван.');if(inDrawer)drawerDirty=false}};
   $('#edPdf',root).onclick=async()=>{const r=await S.ed.save();if(r){if(inDrawer)drawerDirty=false;await exportPdf(kind,r,$('#edPdf',root))}};
   if($('#edNew',root))$('#edNew',root).onclick=()=>openEditor(kind,null);
-  if($('#edDel',root))$('#edDel',root).onclick=()=>{const o=S.ed.draft,id=S.ed.id;confirmBox(`Обрисати ${kind==='offer'?'понуду':'захтев'} ${o.broj}?`,'Брисање се не може опозвати. Број у деловоднику остаје.','Обриши',async()=>{await remove(K.coll,id);S.ed=null;S.tab[K.page]='lista';if(inDrawer)closeDrawer(true);render(true);toast('Обрисано.')})};
+  if($('#edDel',root))$('#edDel',root).onclick=()=>{const o=S.ed.draft,id=S.ed.id,iz=exportsOf([[kind,{id,broj:o.broj}]]);confirmBox(`Обрисати ${kind==='offer'?'понуду':'захтев'} ${o.broj}?`,'Брисање се не може опозвати.'+(iz.length?` Обрисаће се и ${linkedTxt({offs:[],zs:[],iz,pj:[],fl:[]})} из евиденције.`:'')+' Број у деловоднику остаје.','Обриши',async()=>{await removeAll(iz.map(x=>['izvozi',x.id]));await remove(K.coll,id);S.ed=null;S.tab[K.page]='lista';if(inDrawer)closeDrawer(true);render(true);toast('Обрисано.')})};
 }
 /* ставке: само попуњене, највише MAXST */
 function itemsBind(root,kind,o,onChange){
@@ -1216,11 +1226,12 @@ async function exportPdf(kind,o,btn){
 function viewExport(x){
   const kind=x.tip==='zahtev'?'zahtev':'offer',doc=kind==='zahtev'?x.zahtev:x.ponuda;
   const m=document.createElement('div');m.className='viewer';
-  m.innerHTML=`<div class="vbar"><div><div class="eyebrow" style="color:#A3A6C8">${dots('c')} ${kind==='zahtev'?'Извезен захтев':'Извезена понуда'} · ${esc(fmtDT(x.kada))} · ${esc(x.ko)}</div><b>${kind==='zahtev'?'Захтев':'Понуда'} ${esc(x.broj)} — ${esc(x.kupac)}</b></div><div class="actions"><button class="btn" data-dl>${icon('pdf')}Преузми поново</button><button class="btn" data-x aria-label="Затвори">${icon('x')}</button></div></div><div class="vbody"><div class="vpage">${kind==='zahtev'?zahtevA4(doc,x.obrazac):offerA4(doc,x.obrazac)}</div></div>`;
+  m.innerHTML=`<div class="vbar"><div><div class="eyebrow" style="color:#A3A6C8">${dots('c')} ${kind==='zahtev'?'Извезен захтев':'Извезена понуда'} · ${esc(fmtDT(x.kada))} · ${esc(x.ko)}</div><b>${kind==='zahtev'?'Захтев':'Понуда'} ${esc(x.broj)} — ${esc(x.kupac)}</b></div><div class="actions"><button class="btn" data-del>${icon('trash')}Обриши из евиденције</button><button class="btn" data-dl>${icon('pdf')}Преузми поново</button><button class="btn" data-x aria-label="Затвори">${icon('x')}</button></div></div><div class="vbody"><div class="vpage">${kind==='zahtev'?zahtevA4(doc,x.obrazac):offerA4(doc,x.obrazac)}</div></div>`;
   document.body.appendChild(m);
   const fit=()=>{const pg=m.querySelector('.vpage'),w=Math.min(794,m.querySelector('.vbody').clientWidth-32),k=w/794;pg.style.width=w+'px';pg.style.height=1123*k+'px';pg.firstElementChild.style.transform=`scale(${k})`};fit();addEventListener('resize',fit);
   const close=()=>{removeEventListener('resize',fit);m.remove()};m.querySelector('[data-x]').onclick=close;
   m.addEventListener('keydown',e=>{if(e.key==='Escape')close()});m.tabIndex=-1;m.focus();
+  m.querySelector('[data-del]').onclick=()=>confirmBox('Обрисати извоз из евиденције?',`${kind==='zahtev'?'Захтев':'Понуда'} ${x.broj} — ${x.kupac} · извезено ${fmtDT(x.kada)}. Брише се само запис о извозу; ${kind==='zahtev'?'захтев':'понуда'} и предмет остају.`,'Обриши',async()=>{await remove('izvozi',x.id);close();toast('Извоз је обрисан из евиденције.')});
   m.querySelector('[data-dl]').onclick=async ev=>{const b=ev.currentTarget,l=b.innerHTML;b.disabled=true;b.innerHTML='Припрема…';try{const bl=await makePdfBlob(kind,doc,x.obrazac);if(await saveFile(bl,pdfName(kind,doc)))toast('PDF је сачуван.')}catch(e){if(e?.code!=='declined')toast('Преузимање није успело.')}finally{b.disabled=false;b.innerHTML=l}};
 }
 
