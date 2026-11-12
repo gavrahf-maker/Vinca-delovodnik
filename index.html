@@ -110,7 +110,7 @@ h2{font-size:15px;font-weight:600;margin:0}
 .kpi .s{font-size:12px;color:var(--faint)}
 .kpi .dotk{width:8px;height:8px;border-radius:50%}
 /* ток */
-.flow{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:0;padding:6px 18px 18px}
+.flow{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:0;padding:6px 18px 18px}
 .stage{position:relative;padding:12px 10px 12px 14px;border:0;background:none;text-align:left;cursor:pointer;border-radius:10px;display:flex;flex-direction:column;gap:6px;min-width:0}
 .stage:hover{background:var(--surface2)}
 .stage .n{font-family:var(--mono);font-size:26px;font-weight:500;line-height:1}
@@ -253,6 +253,8 @@ table.t{width:100%;border-collapse:collapse;font-size:13.5px}
 .steps i{flex:1;height:5px;border-radius:3px;background:var(--line)}
 .steps i.on{background:var(--indigo)}
 .multi{display:flex;flex-wrap:wrap;gap:6px}
+.chk{display:flex;align-items:center;gap:9px;height:38px;font-weight:600;cursor:pointer;color:var(--ink)!important;font-size:13.5px!important}
+.chk input{width:18px;height:18px;accent-color:var(--indigo)}
 /* сегменти (панел за унос и обрасци): свака целина је посебна картица са насловном траком */
 .db{gap:16px}
 .db .sec,.edcard .sec{background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:0 16px 16px;gap:12px}
@@ -335,7 +337,7 @@ table.t{width:100%;border-collapse:collapse;font-size:13.5px}
 /* ток предмета */
 .flow .stage .n{color:var(--kpi-num)}
 .flow .stage .bar i{background:var(--bar)}
-.flow .stage:nth-child(8) .bar i{background:var(--ok)}
+.flow .stage:nth-child(9) .bar i{background:var(--ok)}
 /* табеле */
 .t th{background:var(--th-bg);color:var(--th-ink)}
 .t tbody tr:nth-child(even) td{background:var(--stripe)}
@@ -601,7 +603,7 @@ const COLL=['entries','offers','zahtevi','nalozi','projects','field','ugovori','
 const S={me:null,db:null,dl:null,canWrite:true,loaded:{},stale:false,
   entries:[],offers:[],zahtevi:[],nalozi:[],projects:[],field:[],ugovori:[],docs:[],services:[],clients:[],izvozi:[],settings:null,
   page:'tabla',f:{q:'',faza:'',vrsta:'',isp:'',otvoreni:false},cal:null,cq:'',pq:'',zq:'',uq:'',nq:'',tab:{ponude:'lista',zahtevi:'lista',nalozi:'lista'},ed:null};
-const DEF={pragovi:{pripremaPonude:3,cekaOdgovor:0,vaziPonuda:30,cekaNalog:5,cekaIspitivac:3,realizacija:30,fakturisanje:3,izdatZahtev:15,projekatObrazac:14,alarmDana:60},
+const DEF={pragovi:{pripremaPonude:3,spremnaPonuda:2,cekaOdgovor:0,vaziPonuda:30,cekaNalog:5,cekaIspitivac:3,realizacija:30,fakturisanje:3,izdatZahtev:15,projekatObrazac:14,alarmDana:60},
  ponuda:{prefiks:'4-',nacinPlacanja:'Вирман',rokPlacanja:'8 дана',rokVazenja:'30 дана',pdv:20,potpisnik:'',funkcija:'Руководилац ОЈ',oj:'Лабораторија "Заштита"',oznaka:'',banka:'',mb:'',pib:'',napomena:'',vanObima:'*Ван обима акредитације',footer1:'',footer2:''},
  nalog:{oznaka:'ЗП.3.100.17.2',verzija:'1.0',primenjujeOd:'01.09.2025.',
   metode:['VM2','SRPS IEC 61223-2-9/ SRPS IEC 61223-3-1 (снимање и просветљавање),','SRPS IEC 61223-2-11/SRPS IEC (61223-3-1) (снимање)','EUREF (мамографија)','SRPS EN 61223-3-4 (стоматологија)','EFOMP (CBCT стоматологија)','IAEA HHS 19 (компјутеризована томографија)'],
@@ -614,6 +616,7 @@ const cfg=()=>{const s=S.settings||{};return{pragovi:{...DEF.pragovi,...(s.prago
 /* ================= фазе предмета ================= */
 const PHASES=[
  {k:'priprema',t:'Припрема понуде',c:'gold',prag:'pripremaPonude'},
+ {k:'spremna',t:'Понуда спремна за слање',c:'gold',prag:'spremnaPonuda'},
  {k:'odgovor',t:'Чека одговор купца',c:'cyan',prag:'cekaOdgovor'},
  {k:'nalog',t:'Чека радни налог',c:'indigo',prag:'cekaNalog'},
  {k:'ispitivac',t:'Чека испитивача',c:'indigo',prag:'cekaIspitivac'},
@@ -635,7 +638,7 @@ function phaseOf(e){
   if(e.brNaloga)return 'ispitivac';
   if(e.status==='Прихваћено'||e.brUgovora)return isProjekat(e)?'ispitivac':'nalog';
   if(e.opis==='Јавна набавка'&&!e.status)return 'odgovor'; // јавна набавка чека одлуку (Статус) без рока важења
-  if(e.brPonude)return daysSince(offerDate(e))>vaziDana()?'istekla':'odgovor';
+  if(e.brPonude){if(!isSent(e))return 'spremna';return daysSince(offerDate(e))>vaziDana()?'istekla':'odgovor'}
   if(e.opis==='Понуда')return 'priprema'; // број понуде се тражи само за „Понуда“
   if(isProjekat(e))return 'ispitivac';
   return 'nalog';
@@ -652,6 +655,8 @@ function phaseGaps(e){if((e.status||'')==='Одбијено'||isInterni(e))retur
   if(e.opis==='Понуда'&&!String(e.brPonude||'').trim()&&(e.status==='Прихваћено'||last>=0||String(e.brUgovora||'').trim()))g.unshift('Бр. понуде');
   return g}
 const gapsHtml=e=>{const g=phaseGaps(e);return g.length?`<div class="gap">недостаје: ${esc(g.join(', '))}</div>`:''};
+/* Понуда послата кориснику: квачица у предмету (poslata, datumSlanja). Стари предмети из Excel-а (и они где у Бр. понуде пише „послата/однето/предато“) сматрају се послатим док се квачица не промени. */
+const isSent=e=>e.poslata!==undefined?!!e.poslata:(e.createdBy==='Увоз из Excel-а 2026'||/послат|однет|однел|предат/i.test(e.brPonude||''));
 const isOpen=e=>!['zatvoreno','odbijeno','istekla'].includes(phaseOf(e));
 /* Понуда важи N дана (подразумевано 30). Датум понуде: из понуде у апликацији, иначе први датум у пољу „Бр. понуде“ (нпр. „послата мејлом 12.01.2026.“), иначе датум предмета. */
 const vaziDana=()=>+cfg().pragovi.vaziPonuda||30;
@@ -817,7 +822,7 @@ VIEWS.tabla=()=>{
   const offVal=pend.reduce((s,e)=>{const o=S.offers.find(o=>o.broj===e.brPonude);return s+(o?offerTotals(o).ukupno:0)},0);
   const decided=E.filter(e=>e.status==='Прихваћено'||e.status==='Одбијено'),acc=E.filter(e=>e.status==='Прихваћено').length;
   const projOpen=S.projects.filter(p=>p.status!=='Завршено').length;
-  const stages=['priprema','odgovor','nalog','ispitivac','realizacija','faktura','zahtev','zatvoreno'];
+  const stages=['priprema','spremna','odgovor','nalog','ispitivac','realizacija','faktura','zahtev','zatvoreno'];
   const cnt=Object.fromEntries(stages.map(k=>[k,E.filter(e=>phaseOf(e)===k).length]));const mx=Math.max(1,...Object.values(cnt));
   const alStage=k=>al.filter(a=>a.key[0]==='e'&&phaseOf(S.entries.find(e=>'e'+e.id===a.key)||{})===k).length;
   const h=+bgParts().hour,greet=h>=5&&h<12?'Добро јутро':h>=12&&h<18?'Добар дан':'Добро вече';
@@ -977,9 +982,9 @@ const metN=(e,m)=>{const a=e.metode||[];const x=a.find(x=>(x?.m??x)===m);return 
 /* ---------- предмет ---------- */
 function openEntry(id){
   const e=id?S.entries.find(x=>x.id===id):{rb:nextRb(),datum:todayISO(),primio:'',standardi:{}};if(!e)return;
-  const L=cfg().lists,k=id?phaseOf(e):null,order=['priprema','odgovor','nalog','ispitivac','realizacija','faktura','zahtev','zatvoreno'];
+  const L=cfg().lists,k=id?phaseOf(e):null,order=['priprema','spremna','odgovor','nalog','ispitivac','realizacija','faktura','zahtev','zatvoreno'];
   const off=id?offerForEntry(e):null,zah=id?S.zahtevi.filter(z=>z.entryId===id):[];
-  const stp=!id?1:['priprema','odgovor'].includes(k)?2:['nalog','ispitivac','realizacija'].includes(k)?3:['faktura','zahtev'].includes(k)?4:k==='zatvoreno'?5:0;
+  const stp=!id?1:['priprema','spremna','odgovor'].includes(k)?2:['nalog','ispitivac','realizacija'].includes(k)?3:['faktura','zahtev'].includes(k)?4:k==='zatvoreno'?5:0;
   const stH=(n,t)=>{const c=n<stp?'done':n===stp?'cur':'';return `<div class="sec st ${c}"><h4><b class="sn">${c==='done'?'✓':n}</b>${t}<em>${c==='cur'?'тренутни корак':c==='done'?'завршено':''}</em></h4>`};
   openDrawer(dHead(id?'Предмет':'Нов предмет',id?`Р.б. ${esc(e.rb)} · ${esc(e.korisnik)}`:'Унос у деловодник')+`<form class="db" id="ef">${dlists()}
     ${id?`<div class="phase-now">${phaseChip(k)}<div class="steps">${order.map((s,i)=>`<i class="${order.indexOf(k)>=i&&k!=='odbijeno'?'on':''}"></i>`).join('')}</div><span class="sub" style="margin:0;font-size:12px">у фази ${daysSince(e.fazaOd||e.datum)} д</span></div>`:''}
@@ -990,6 +995,7 @@ function openEntry(id){
     </div></div>
     ${stH(2,'Понуда и уговор')}<div class="fg g3">
       ${field('brPonude','Бр. понуде / јавне набавке',e.brPonude)}${field('status','Статус',e.status,'select',{opts:L.statusZahteva})}${field('brUgovora','Бр. уговора / наруџбенице',e.brUgovora)}
+      <div class="f"><label>Слање понуде</label><label class="chk"><input type="checkbox" id="f_posl" ${isSent(e)?'checked':''}>Понуда послата кориснику</label><span class="hint">Док није означено, фаза је „Понуда спремна за слање“.</span></div>${field('datumSlanja','Датум слања',e.datumSlanja,'date')}
     </div><div>${off?`<button type="button" class="btn sm" id="goOff">${icon('ponude')}Отвори понуду ${esc(off.broj)}</button>`:`<button type="button" class="btn sm" id="mkOff">${icon('plus')}Направи понуду за овај предмет</button>`}</div></div>
     ${stH(3,'Реализација')}<div class="fg g3">
       ${field('brNaloga','Бр. радног налога',e.brNaloga,'text',{hint:'<button type="button" class="btn sm ghost" id="nalogRb" style="height:24px;padding:0 6px;margin-left:-6px">Упиши Р.б. предмета</button>'})}${field('ispitivac','Испитивач',e.ispitivac,'select',{opts:L.ispitivaci})}${field('brDokumenta','Бр. документа',e.brDokumenta)}
@@ -1002,10 +1008,11 @@ function openEntry(id){
     ${histHtml(e)}
   </form><div class="df"><div>${id?`<button class="btn danger" id="del">${icon('trash')}Обриши</button>`:''}</div><div class="actions"><button class="btn" data-close>Откажи</button><button class="btn pri" id="sv">${icon('check')}Сачувај</button></div></div>`);
   $$('[data-met]').forEach(i=>i.addEventListener('input',()=>i.closest('label').classList.toggle('has',+i.value>0)));
+  $('#f_posl').onchange=()=>{const c=$('#f_posl').checked;if(c&&!val('datumSlanja')&&!(e.poslata===undefined&&isSent(e)))setD('datumSlanja',todayISO());if(!c)setD('datumSlanja','')};
   $('#nalogRb').onclick=()=>{const n=$('#f_brNaloga');n.value=val('rb');n.dispatchEvent(new Event('input',{bubbles:true}));n.focus()};
   const collect=()=>{const met=$$('[data-met]').filter(i=>+i.value>0).map(i=>({m:i.dataset.met,n:Math.round(+i.value)}));
     const keep=(e.metode||[]).filter(x=>!cfg().lists.standardi.includes(x?.m??x));
-    const d={rb:+val('rb')||nextRb(),datum:val('datum'),primio:val('primio'),korisnik:val('korisnik'),opis:val('opis'),vrsta:val('vrsta'),preispitivanje:val('preispitivanje'),brPonude:val('brPonude'),status:val('status'),brUgovora:val('brUgovora'),brNaloga:val('brNaloga'),ispitivac:val('ispitivac'),brDokumenta:val('brDokumenta'),zahtevFakt:val('zahtevFakt'),brFakture:val('brFakture'),napomena:val('napomena'),zabrana:val('zabrana'),metode:[...keep.map(x=>typeof x==='string'?{m:x,n:1}:x),...met]};
+    const d={rb:+val('rb')||nextRb(),datum:val('datum'),primio:val('primio'),korisnik:val('korisnik'),opis:val('opis'),vrsta:val('vrsta'),preispitivanje:val('preispitivanje'),brPonude:val('brPonude'),poslata:$('#f_posl').checked,datumSlanja:$('#f_posl').checked?val('datumSlanja'):'',status:val('status'),brUgovora:val('brUgovora'),brNaloga:val('brNaloga'),ispitivac:val('ispitivac'),brDokumenta:val('brDokumenta'),zahtevFakt:val('zahtevFakt'),brFakture:val('brFakture'),napomena:val('napomena'),zabrana:val('zabrana'),metode:[...keep.map(x=>typeof x==='string'?{m:x,n:1}:x),...met]};
     const nk=phaseOf(d);d.fazaOd=(id&&phaseOf(e)===nk)?(e.fazaOd||e.datum):todayISO();return d};
   const doSave=async()=>{const d=collect();if(!d.korisnik){toast('Унесите корисника.');$('#f_korisnik').focus();return null}
     if(!d.datum){toast('Унесите датум у облику ДД/ММ/ГГГГ.');$('#f_datum').focus();return null}
@@ -1093,15 +1100,16 @@ VIEWS.ponude=()=>{
   const q=S.pq.toLowerCase();const rows=S.offers.filter(o=>!q||[o.broj,o.kupac?.naziv].join(' ').toLowerCase().includes(q)).sort((a,b)=>(b.datum||'').localeCompare(a.datum||'')||(b.broj||'').localeCompare(a.broj||''));
   const iz=S.izvozi.filter(x=>tipOf(x)==='offer');
   return H+`<section class="card"><div class="toolbar"><div class="search">${icon('search')}<input class="in" id="pq" placeholder="Претрага: број понуде или купац" value="${esc(S.pq)}"></div></div>
-  <div class="tw"><table class="t"><thead><tr><th>Број</th><th>Датум</th><th>Купац</th><th>Предмет</th><th>Статус</th><th class="r">Износ</th><th class="r">Укупно са ПДВ</th><th>Сачинио</th><th></th></tr></thead><tbody>
-  ${rows.map(o=>{const t=offerTotals(o),e=S.entries.find(e=>e.id===o.entryId)||S.entries.find(e=>e.brPonude===o.broj);return `<tr data-id="${o.id}"><td class="num"><b>${esc(o.broj)}</b></td><td class="num muted">${fmtD(o.datum)}</td><td>${esc(o.kupac?.naziv)}</td><td class="num muted">${e?'Р.б. '+esc(e.rb):'—'}</td><td>${e?phaseChip(phaseOf(e)):'<span class="chip plain">Без предмета</span>'}</td><td class="r num">${money(t.iznos)}</td><td class="r num"><b>${money(t.ukupno)}</b></td><td>${who(o.updatedBy)}</td><td class="r"><button class="btn sm" data-pdf="${o.id}">${icon('pdf')}PDF</button></td></tr>`}).join('')}
+  <div class="tw"><table class="t"><thead><tr><th>Број</th><th>Датум</th><th>Купац</th><th>Предмет</th><th>Статус</th><th>Послата</th><th class="r">Износ</th><th class="r">Укупно са ПДВ</th><th>Сачинио</th><th></th></tr></thead><tbody>
+  ${rows.map(o=>{const t=offerTotals(o),e=S.entries.find(e=>e.id===o.entryId)||S.entries.find(e=>e.brPonude===o.broj);return `<tr data-id="${o.id}"><td class="num"><b>${esc(o.broj)}</b></td><td class="num muted">${fmtD(o.datum)}</td><td>${esc(o.kupac?.naziv)}</td><td class="num muted">${e?'Р.б. '+esc(e.rb):'—'}</td><td>${e?phaseChip(phaseOf(e)):'<span class="chip plain">Без предмета</span>'}</td><td>${!e?'':isSent(e)?`<span class="chip ok plain">${e.datumSlanja?fmtD(e.datumSlanja):'да'}</span>`:`<button class="btn sm" data-sent="${e.id}">${icon('check')}Означи послату</button>`}</td><td class="r num">${money(t.iznos)}</td><td class="r num"><b>${money(t.ukupno)}</b></td><td>${who(o.updatedBy)}</td><td class="r"><button class="btn sm" data-pdf="${o.id}">${icon('pdf')}PDF</button></td></tr>`}).join('')}
   </tbody></table>${rows.length?'':`<div class="empty"><b>Још нема понуда</b>Направите понуду дугметом „Нова понуда“ или из предмета у деловоднику.</div>`}</div></section>
   ${exportsCard('Евиденција извезених понуда',iz,'Још ниједна понуда није извезена у PDF.')}`;
 };
 BIND.ponude=()=>{bindTabs('offer');bindGo();
   if(S.tab.ponude==='obrazac'&&S.ed?.kind==='offer'){bindEditor($('#main'),false);return}
   let tm;$('#pq').oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>{S.pq=$('#pq').value;const p=$('#pq').selectionStart;render();$('#pq').focus();$('#pq').setSelectionRange(p,p)},180)};
-  $$('tr[data-id]').forEach(r=>r.onclick=ev=>{if(ev.target.closest('[data-pdf]'))return;openOffer(r.dataset.id)});
+  $$('[data-sent]').forEach(b=>b.onclick=async ev=>{ev.stopPropagation();const e=S.entries.find(x=>x.id===b.dataset.sent);if(!e)return;const ne={...e,poslata:true,datumSlanja:todayISO()};ne.fazaOd=phaseOf(ne)!==phaseOf(e)?todayISO():(e.fazaOd||e.datum);try{await save('entries',e.id,ne,'Понуда послата кориснику');toast(`Понуда за Р.б. ${e.rb} је означена као послата.`)}catch(x){}});
+  $$('tr[data-id]').forEach(r=>r.onclick=ev=>{if(ev.target.closest('[data-pdf],[data-sent]'))return;openOffer(r.dataset.id)});
   bindExports();
   $$('[data-pdf]').forEach(b=>b.onclick=()=>exportPdf('offer',S.offers.find(o=>o.id===b.dataset.pdf),b))};
 const exportsCard=(t,list,emptyT,noSum)=>`<section class="card"><div class="ch"><h2>${t}</h2><span class="sub" style="margin:0;font-size:12.5px">Сваки извоз се памти тачно онакав какав је послат</span></div>
@@ -1550,7 +1558,7 @@ function openClient(id){
 
 /* ---------- ПОДЕШАВАЊА ---------- */
 const LIST_LBL={opisZahteva:'Опис захтева',vrsteUsluga:'Врсте услуга',preispitivanje:'Преиспитивање захтева',primaoci:'Примаоци захтева',ispitivaci:'Испитивачи',statusZahteva:'Статус захтева',zahtevFakt:'Захтев за фактурисање (у предмету)',bezNaloga:'Услуге без радног налога (раде се електронски)',vrsteRacuna:'Врсте рачуна',rokoviPlacanja:'Рокови плаћања',projektiDokumenti:'Документи пројеката',statusProjekta:'Статус пројекта',standardi:'Методе (стандарди)',dokKategorije:'Категорије документације',zaposleni:'Колеге (пријава)'};
-const PRAG_LBL={pripremaPonude:'Припрема понуде',cekaOdgovor:'Чека одговор купца: аларм од дана (0 = одмах по изради понуде)',vaziPonuda:'Понуда важи (дана); после тога се одговор не чека',cekaNalog:'Чека радни налог',cekaIspitivac:'Чека испитивача',realizacija:'У реализацији',fakturisanje:'За фактурисање',izdatZahtev:'Издат захтев, чека број фактуре',projekatObrazac:'Пројекат: образац није враћен',alarmDana:'Аларми само за предмете млађе од (дана, 0 = сви)'};
+const PRAG_LBL={pripremaPonude:'Припрема понуде',spremnaPonuda:'Понуда спремна, а није послата',cekaOdgovor:'Чека одговор купца: аларм од дана (0 = одмах по изради понуде)',vaziPonuda:'Понуда важи (дана); после тога се одговор не чека',cekaNalog:'Чека радни налог',cekaIspitivac:'Чека испитивача',realizacija:'У реализацији',fakturisanje:'За фактурисање',izdatZahtev:'Издат захтев, чека број фактуре',projekatObrazac:'Пројекат: образац није враћен',alarmDana:'Аларми само за предмете млађе од (дана, 0 = сви)'};
 const POND_LBL={nacinPlacanja:'Начин плаћања',rokPlacanja:'Рок плаћања',rokVazenja:'Рок важења',pdv:'Стопа ПДВ-а (%)',funkcija:'Функција потписника',oj:'Организациона јединица',potpisnik:'Потписник',banka:'Текући рачун и банка',mb:'Матични број',pib:'ПИБ',oznaka:'Ознака обрасца',vanObima:'Напомена за услуге са звездицом (*)',footer1:'Подножје, ред 1',footer2:'Подножје, ред 2'};
 const NAL_LBL={oznaka:'Ознака обрасца',verzija:'Верзија',primenjujeOd:'Примењује се од'};
 const ZAH_LBL={oznaka:'Ознака обрасца',verzija:'Верзија',lab1:'Назив лабораторије, ред 1',lab2:'Назив лабораторије, ред 2',tehRukovodilac:'Технички руководилац (подразумевано)',rokPlacanja:'Рок плаћања (подразумевано)'};
